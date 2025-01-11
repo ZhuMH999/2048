@@ -14,7 +14,28 @@ class View:
 
 class Model:
     def __init__(self):
-        pass
+        self.x = 4
+        self.y = 4
+        self.board = [[0] * self.x for _ in range(self.y)]
+
+    def move_left(self):
+        for i in range(self.y):
+            for j in range(self.x-1):
+                if self.board[i][j+1] != 0:
+                    done = False
+                    temp = 1
+                    while not done:
+                        if j+temp == 0:
+                            done = True
+                        elif self.board[i][j+temp-1] == 0 or self.board[i][j+temp-1] == self.board[i][j+temp]:
+                            if self.board[i][j+temp-1] == 0:
+                                self.board[i][j+temp-1] = self.board[i][j+temp]
+                            elif self.board[i][j+temp-1] == self.board[i][j+temp]:
+                                self.board[i][j+temp-1] *= 2
+                            self.board[i][j+temp] = 0
+                            temp -= 1
+                        else:
+                            done = True
 
 class Controller:
     def __init__(self):
