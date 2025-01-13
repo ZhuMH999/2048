@@ -51,13 +51,32 @@ class View:
             if self.model.x > 4:
                 self.get_text_widget_and_center((0, 0, 0), self.model.x * (TILE_SIZE + TILE_GAP) + 100, 10 + TILE_SIZE/2, MENU_FONT, 'Auto Move')
 
-                if self.model.x * (TILE_SIZE + TILE_GAP) + 30 < x < self.model.x * (TILE_SIZE + TILE_GAP) + 50 and TILE_SIZE/2 < y < TILE_SIZE/2 + 20:
+                if self.model.x * (TILE_SIZE + TILE_GAP) + 30 < x < self.model.x * (TILE_SIZE + TILE_GAP) + 50 and TILE_SIZE/2 < y < TILE_SIZE/2 + 20 and not self.model.end:
                     pygame.draw.rect(self.win, (120, 120, 120), (self.model.x * (TILE_SIZE + TILE_GAP) + 30, TILE_SIZE / 2, 20, 20))
                 else:
                     if self.model.auto_move:
                         pygame.draw.rect(self.win, (118, 150, 86), (self.model.x * (TILE_SIZE + TILE_GAP) + 30, TILE_SIZE/2, 20, 20))
                     else:
                         pygame.draw.rect(self.win, (70, 70, 70), (self.model.x * (TILE_SIZE + TILE_GAP) + 30, TILE_SIZE / 2, 20, 20))
+
+            if self.model.x * (TILE_SIZE + TILE_GAP) + 30 < x < self.model.x * (TILE_SIZE + TILE_GAP) + 130 and TILE_SIZE / 2 + 30 < y < TILE_SIZE / 2 + 70 and not self.model.end:
+                pygame.draw.rect(self.win, (120, 120, 120), (self.model.x * (TILE_SIZE + TILE_GAP) + 30, TILE_SIZE / 2 + 30, 100, 40), border_radius=4)
+            else:
+                pygame.draw.rect(self.win, (70, 70, 70), (self.model.x * (TILE_SIZE + TILE_GAP) + 30, TILE_SIZE / 2 + 30, 100, 40), border_radius=4)
+
+            self.get_text_widget_and_center((200, 200, 200), self.model.x * (TILE_SIZE + TILE_GAP) + 80, TILE_SIZE / 2 + 50, MENU_FONT, 'Home')
+
+            if self.model.end:
+                pygame.draw.rect(self.win, (90, 90, 90), (250, 195, 300, 190), border_radius=4)
+                pygame.draw.rect(self.win, (238, 238, 210), (255, 200, 290, 180), border_radius=4)
+                self.get_text_widget_and_center((118, 150, 86), 400, 230, MENU_FONT, 'Game Over!')
+                self.get_text_widget_and_center((118, 150, 86), 400, 250, MENU_FONT, 'Your score was: ' + str(self.model.score))
+
+                pygame.draw.rect(self.win, (100, 100, 100), (345, 335, 110, 40), border_radius=4)
+                if 345 < x < 455 and 335 < y < 375:
+                    pygame.draw.rect(self.win, (170, 170, 170), (350, 340, 100, 30), border_radius=4)
+
+                self.get_text_widget_and_center((238, 238, 210), 400, 355, MENU_FONT, 'Quit Game')
 
         else:
             pygame.draw.rect(self.win, (80, 80, 80), (280, 175, 240, 250), border_radius=4)
@@ -82,6 +101,7 @@ class Model:
         self.board = []
         self.score = 0
         self.end = False
+        self.run = True
         self.auto_move = False
 
     def move_left(self, check=False):
@@ -250,11 +270,17 @@ class Model:
                 self.board = [[0] * self.x for _ in range(self.y)]
                 self.spawn_new_num()
         else:
-            if self.x * (TILE_SIZE + TILE_GAP) + 30 < x < self.x * (TILE_SIZE + TILE_GAP) + 50 and TILE_SIZE / 2 < y < TILE_SIZE / 2 + 20:
-                if self.auto_move:
-                    self.auto_move = False
-                else:
-                    self.auto_move = True
+            if not self.end:
+                if self.x * (TILE_SIZE + TILE_GAP) + 30 < x < self.x * (TILE_SIZE + TILE_GAP) + 50 and TILE_SIZE / 2 < y < TILE_SIZE / 2 + 20:
+                    if self.auto_move:
+                        self.auto_move = False
+                    else:
+                        self.auto_move = True
+                elif self.x * (TILE_SIZE + TILE_GAP) + 30 < x < self.x * (TILE_SIZE + TILE_GAP) + 130 and TILE_SIZE / 2 + 30 < y < TILE_SIZE / 2 + 70:
+                    self.x = None
+            elif self.end:
+                if 345 < x < 455 and 335 < y < 375:
+                    self.run = False
 
 class Controller:
     def __init__(self):
@@ -266,9 +292,8 @@ class Controller:
 
     def run(self):
         clock = pygame.time.Clock()
-        run = True
 
-        while run:
+        while self.model.run:
             clock.tick(60)
 
             if self.model.auto_move:
@@ -279,7 +304,7 @@ class Controller:
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    run = False
+                    self.model.run = False
                 elif event.type == pygame.KEYDOWN and self.model.x is not None:
                     if event.key == pygame.K_LEFT:
                         self.model.move_left()
