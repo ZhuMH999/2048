@@ -35,7 +35,9 @@ class View:
         if self.model.x is not None:
             for i in range(self.model.y):
                 for j in range(self.model.x):
-                    if self.model.board[i][j] > 2048:
+                    if i == self.model.new_y and j == self.model.new_x:
+                        pygame.draw.rect(self.win, (255, 0, 0), (j * (TILE_SIZE + TILE_GAP) + 10, i * (TILE_SIZE + TILE_GAP) + 10, TILE_SIZE, TILE_SIZE))
+                    elif self.model.board[i][j] > 2048:
                         pygame.draw.rect(self.win, (187, 165, 61), (j*(TILE_SIZE+TILE_GAP)+10, i*(TILE_SIZE+TILE_GAP)+10, TILE_SIZE, TILE_SIZE))
                         pygame.draw.rect(self.win, TILE_COLORS[4096], (j*(TILE_SIZE+TILE_GAP)+15, i*(TILE_SIZE+TILE_GAP)+15, TILE_SIZE-10, TILE_SIZE-10))
                     else:
@@ -98,135 +100,52 @@ class Model:
     def __init__(self):
         self.x = None
         self.y = None
+        self.new_x = None
+        self.new_y = None
         self.board = []
         self.score = 0
         self.end = False
         self.run = True
         self.auto_move = False
 
-    def move_left(self, check=False):
+    def move(self, direction, check=False):
+        # delta, y range, x range, i index, x index, move_cond, new_pos, current_pos
+        directions = [[-1, range(self.y), range(self.x-1), lambda i, j: i, lambda i, j: j+1, lambda i, j, temp: j+temp > 0, lambda i, j, temp: (i, j+temp-1), lambda i, j, temp: (i, j+temp)],  # move left
+                      [1, range(self.y), range(self.x-2, -1, -1), lambda i, j: i, lambda i, j: j, lambda i, j, temp: j+temp < self.x, lambda i, j, temp: (i, j+temp), lambda i, j, temp: (i, j+temp-1)],  # move right
+                      [-1, range(self.y-1), range(self.x), lambda i, j: i+1, lambda i, j: j, lambda i, j, temp: i+temp > 0, lambda i, j, temp: (i+temp-1, j), lambda i, j, temp: (i+temp, j)],  # move up
+                      [1, range(self.y-2, -1, -1), range(self.x), lambda i, j: i, lambda i, j: j, lambda i, j, temp: i+temp < self.y, lambda i, j, temp: (i+temp, j), lambda i, j, temp: (i+temp-1, j)]]  # move down
+        
+        params = directions[direction]
         has_moved = False
-        for i in range(self.y):
-            for j in range(self.x-1):
-                if self.board[i][j+1] != 0:
-                    done = False
-                    has_merged = False
-                    temp = 1
-                    while not done:
-                        if j+temp == 0:
-                            done = True
-                        elif (self.board[i][j+temp-1] == 0 or (self.board[i][j+temp-1] == self.board[i][j+temp] and not has_merged)) and ((not has_moved and check) or not check):
-                            if self.board[i][j+temp-1] == 0:
-                                if not check:
-                                    self.board[i][j+temp-1] = self.board[i][j+temp]
-                            elif self.board[i][j+temp-1] == self.board[i][j+temp]:
-                                if not check:
-                                    self.board[i][j+temp-1] *= 2
-                                    self.score += self.board[i][j+temp-1]
-                                has_merged = True
-                            if not check:
-                                self.board[i][j+temp] = 0
-                            has_moved = True
-                            temp -= 1
-                        else:
-                            done = True
-        if has_moved and not check:
-            self.spawn_new_num()
-            if self.check_for_end():
-                self.end = True
-        if check:
-            return has_moved
+        for i in params[1]:  # range of y
+            for j in params[2]:  # range of x
+                i_index = params[3](i, j)  # i
+                j_index = params[4](i, j)  # j
 
-    def move_right(self, check=False):
-        has_moved = False
-        for i in range(self.y):
-            for j in range(self.x-2, -1, -1):
-                if self.board[i][j] != 0:
+                if self.board[i_index][j_index] != 0:
                     done = False
                     has_merged = False
                     temp = 1
-                    while not done:
-                        if j+temp == self.x:
-                            done = True
-                        elif (self.board[i][j+temp] == 0 or (self.board[i][j+temp] == self.board[i][j+temp-1] and not has_merged)) and ((not has_moved and check) or not check):
-                            if self.board[i][j+temp] == 0:
-                                if not check:
-                                    self.board[i][j+temp] = self.board[i][j+temp-1]
-                            elif self.board[i][j+temp] == self.board[i][j+temp-1]:
-                                if not check:
-                                    self.board[i][j+temp] *= 2
-                                    self.score += self.board[i][j+temp]
-                                has_merged = True
-                            if not check:
-                                self.board[i][j+temp-1] = 0
-                            has_moved = True
-                            temp += 1
-                        else:
-                            done = True
-        if has_moved and not check:
-            self.spawn_new_num()
-            if self.check_for_end():
-                self.end = True
-        if check:
-            return has_moved
 
-    def move_up(self, check=False):
-        has_moved = False
-        for i in range(self.y-1):
-            for j in range(self.x):
-                if self.board[i+1][j] != 0:
-                    done = False
-                    has_merged = False
-                    temp = 1
                     while not done:
-                        if i+temp == 0:
-                            done = True
-                        elif (self.board[i+temp-1][j] == 0 or (self.board[i+temp-1][j] == self.board[i+temp][j] and not has_merged)) and ((not has_moved and check) or not check):
-                            if self.board[i+temp-1][j] == 0:
-                                if not check:
-                                    self.board[i+temp-1][j] = self.board[i+temp][j]
-                            elif self.board[i+temp-1][j] == self.board[i+temp][j]:
-                                if not check:
-                                    self.board[i+temp-1][j] *= 2
-                                    self.score += self.board[i+temp-1][j]
-                                has_merged = True
-                            if not check:
-                                self.board[i+temp][j] = 0
-                            has_moved = True
-                            temp -= 1
-                        else:
-                            done = True
-        if has_moved and not check:
-            self.spawn_new_num()
-            if self.check_for_end():
-                self.end = True
-        if check:
-            return has_moved
+                        new_i, new_j = params[6](i, j, temp)
+                        current_i, current_j = params[7](i, j, temp)
 
-    def move_down(self, check=False):
-        has_moved = False
-        for i in range(self.y-2, -1, -1):
-            for j in range(self.x):
-                if self.board[i][j] != 0:
-                    done = False
-                    has_merged = False
-                    temp = 1
-                    while not done:
-                        if i+temp == self.y:
+                        if not params[5](i, j, temp):
                             done = True
-                        elif (self.board[i+temp][j] == 0 or (self.board[i+temp][j] == self.board[i+temp-1][j] and not has_merged)) and ((not has_moved and check) or not check):
-                            if self.board[i+temp][j] == 0:
+                        elif (self.board[new_i][new_j] == 0 or (self.board[new_i][new_j] == self.board[current_i][current_j] and not has_merged)) and ((not has_moved and check) or not check):
+                            if self.board[new_i][new_j] == 0:
                                 if not check:
-                                    self.board[i+temp][j] = self.board[i+temp-1][j]
-                            elif self.board[i+temp][j] == self.board[i+temp-1][j]:
+                                    self.board[new_i][new_j] = self.board[current_i][current_j]
+                            elif self.board[new_i][new_j] == self.board[current_i][current_j]:
                                 if not check:
-                                    self.board[i+temp][j] *= 2
-                                    self.score += self.board[i+temp][j]
+                                    self.board[new_i][new_j] *= 2
+                                    self.score += self.board[new_i][new_j]
                                 has_merged = True
                             if not check:
-                                self.board[i+temp-1][j] = 0
+                                self.board[current_i][current_j] = 0
                             has_moved = True
-                            temp += 1
+                            temp += params[0]
                         else:
                             done = True
         if has_moved and not check:
@@ -239,16 +158,16 @@ class Model:
     def spawn_new_num(self):
         done = False
         while not done:
-            x, y = random.randint(0, self.x-1), random.randint(0, self.y-1)
-            if self.board[y][x] == 0:
+            self.new_x, self.new_y = random.randint(0, self.x-1), random.randint(0, self.y-1)
+            if self.board[self.new_y][self.new_x] == 0:
                 done = True
                 if random.randint(1, 10) == 10:
-                    self.board[y][x] = 4
+                    self.board[self.new_y][self.new_x] = 4
                 else:
-                    self.board[y][x] = 2
+                    self.board[self.new_y][self.new_x] = 2
 
     def check_for_end(self):
-        if not self.move_down(True) and not self.move_up(True) and not self.move_right(True) and not self.move_left(True):
+        if not self.move(0, True) and not self.move(1, True) and not self.move(2, True) and not self.move(3, True):
             return True
         else:
             return False
@@ -297,23 +216,23 @@ class Controller:
             clock.tick(60)
 
             if self.model.auto_move:
-                self.model.move_right()
-                self.model.move_up()
-                self.model.move_right()
-                self.model.move_down()
+                self.model.move(1)
+                self.model.move(3)
+                self.model.move(1)
+                self.model.move(2)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.model.run = False
                 elif event.type == pygame.KEYDOWN and self.model.x is not None:
                     if event.key == pygame.K_LEFT:
-                        self.model.move_left()
+                        self.model.move(0)
                     elif event.key == pygame.K_RIGHT:
-                        self.model.move_right()
+                        self.model.move(1)
                     elif event.key == pygame.K_UP:
-                        self.model.move_up()
+                        self.model.move(2)
                     elif event.key == pygame.K_DOWN:
-                        self.model.move_down()
+                        self.model.move(3)
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         x, y = pygame.mouse.get_pos()
