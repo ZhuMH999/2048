@@ -109,51 +109,52 @@ class Model:
         self.auto_move = False
 
     def move(self, direction, check=False):
-        # delta, y range, x range, i index, x index, move_cond, new_pos, current_pos
-        directions = [[-1, range(self.y), range(self.x-1), lambda i, j: i, lambda i, j: j+1, lambda i, j, temp: j+temp > 0, lambda i, j, temp: (i, j+temp-1), lambda i, j, temp: (i, j+temp)],  # move left
-                      [1, range(self.y), range(self.x-2, -1, -1), lambda i, j: i, lambda i, j: j, lambda i, j, temp: j+temp < self.x, lambda i, j, temp: (i, j+temp), lambda i, j, temp: (i, j+temp-1)],  # move right
-                      [-1, range(self.y-1), range(self.x), lambda i, j: i+1, lambda i, j: j, lambda i, j, temp: i+temp > 0, lambda i, j, temp: (i+temp-1, j), lambda i, j, temp: (i+temp, j)],  # move up
-                      [1, range(self.y-2, -1, -1), range(self.x), lambda i, j: i, lambda i, j: j, lambda i, j, temp: i+temp < self.y, lambda i, j, temp: (i+temp, j), lambda i, j, temp: (i+temp-1, j)]]  # move down
-        
-        params = directions[direction]
-        has_moved = False
-        for i in params[1]:  # range of y
-            for j in params[2]:  # range of x
-                i_index = params[3](i, j)  # i
-                j_index = params[4](i, j)  # j
+        if self.x is not None:
+            # delta, y range, x range, i index, x index, move_cond, new_pos, current_pos
+            directions = [[-1, range(self.y), range(self.x-1), lambda i, j: i, lambda i, j: j+1, lambda i, j, temp: j+temp > 0, lambda i, j, temp: (i, j+temp-1), lambda i, j, temp: (i, j+temp)],  # move left
+                          [1, range(self.y), range(self.x-2, -1, -1), lambda i, j: i, lambda i, j: j, lambda i, j, temp: j+temp < self.x, lambda i, j, temp: (i, j+temp), lambda i, j, temp: (i, j+temp-1)],  # move right
+                          [-1, range(self.y-1), range(self.x), lambda i, j: i+1, lambda i, j: j, lambda i, j, temp: i+temp > 0, lambda i, j, temp: (i+temp-1, j), lambda i, j, temp: (i+temp, j)],  # move up
+                          [1, range(self.y-2, -1, -1), range(self.x), lambda i, j: i, lambda i, j: j, lambda i, j, temp: i+temp < self.y, lambda i, j, temp: (i+temp, j), lambda i, j, temp: (i+temp-1, j)]]  # move down
 
-                if self.board[i_index][j_index] != 0:
-                    done = False
-                    has_merged = False
-                    temp = 1
+            params = directions[direction]
+            has_moved = False
+            for i in params[1]:  # range of y
+                for j in params[2]:  # range of x
+                    i_index = params[3](i, j)  # i
+                    j_index = params[4](i, j)  # j
 
-                    while not done:
-                        new_i, new_j = params[6](i, j, temp)
-                        current_i, current_j = params[7](i, j, temp)
+                    if self.board[i_index][j_index] != 0:
+                        done = False
+                        has_merged = False
+                        temp = 1
 
-                        if not params[5](i, j, temp):
-                            done = True
-                        elif (self.board[new_i][new_j] == 0 or (self.board[new_i][new_j] == self.board[current_i][current_j] and not has_merged)) and ((not has_moved and check) or not check):
-                            if self.board[new_i][new_j] == 0:
+                        while not done:
+                            new_i, new_j = params[6](i, j, temp)
+                            current_i, current_j = params[7](i, j, temp)
+
+                            if not params[5](i, j, temp):
+                                done = True
+                            elif (self.board[new_i][new_j] == 0 or (self.board[new_i][new_j] == self.board[current_i][current_j] and not has_merged)) and ((not has_moved and check) or not check):
+                                if self.board[new_i][new_j] == 0:
+                                    if not check:
+                                        self.board[new_i][new_j] = self.board[current_i][current_j]
+                                elif self.board[new_i][new_j] == self.board[current_i][current_j]:
+                                    if not check:
+                                        self.board[new_i][new_j] *= 2
+                                        self.score += self.board[new_i][new_j]
+                                    has_merged = True
                                 if not check:
-                                    self.board[new_i][new_j] = self.board[current_i][current_j]
-                            elif self.board[new_i][new_j] == self.board[current_i][current_j]:
-                                if not check:
-                                    self.board[new_i][new_j] *= 2
-                                    self.score += self.board[new_i][new_j]
-                                has_merged = True
-                            if not check:
-                                self.board[current_i][current_j] = 0
-                            has_moved = True
-                            temp += params[0]
-                        else:
-                            done = True
-        if has_moved and not check:
-            self.spawn_new_num()
-            if self.check_for_end():
-                self.end = True
-        if check:
-            return has_moved
+                                    self.board[current_i][current_j] = 0
+                                has_moved = True
+                                temp += params[0]
+                            else:
+                                done = True
+            if has_moved and not check:
+                self.spawn_new_num()
+                if self.check_for_end():
+                    self.end = True
+            if check:
+                return has_moved
 
     def spawn_new_num(self):
         done = False
