@@ -1,5 +1,6 @@
 import pygame
 import random
+import asyncio
 
 pygame.init()
 
@@ -210,11 +211,12 @@ class Controller:
 
         pygame.display.set_caption('2048 in Python')
 
-    def run(self):
+    async def main(self):
         clock = pygame.time.Clock()
 
         while self.model.run:
             clock.tick(60)
+            await asyncio.sleep(0)
 
             if self.model.auto_move:
                 self.model.move(1)
@@ -245,6 +247,5 @@ class Controller:
 
         pygame.quit()
 
-if __name__ == '__main__':
-    c = Controller()
-    c.run()
+c = Controller()
+asyncio.run(c.main())
